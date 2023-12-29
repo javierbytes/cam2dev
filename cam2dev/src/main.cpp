@@ -1,20 +1,19 @@
 #include <Arduino.h>
 
-//includes for environment
+// includes for environment
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <Adafruit_ADS1X15.h>
 
-
-
-//includes for two readers wiegand and system(protothreads)
+// includes for two readers wiegand and system(protothreads)
 #include <trw.h>
 #include <pt.h>
-//i2c peripheral includes
+
+// i2c peripheral includes
 #include <LiquidCrystal_I2C.h>
+#include "RTClib.h"
 
-
-//includes for servers and wifi connections
+// includes for servers and wifi connections
 #include <WiFi.h>
 #include <FS.h>
 #include <AsyncTCP.h>
@@ -22,13 +21,9 @@
 #include <SPIFFS.h>
 #include <Preferences.h>
 
-
-
-//access point dredentials
+// access point dredentials
 const char *ssid = "SYC";
 const char *password = "57832023";
-
-
 
 //********************************
 //********************************
@@ -50,9 +45,7 @@ const char *password = "57832023";
 // define  request to exit
 #define LED_S2 5
 
-
 #define MAX_DEVICES 32
-
 
 //*********************************
 //*********STRUCS*************
@@ -65,7 +58,6 @@ struct I2CDeviceInfo
 };
 //*********************************
 
-
 //**********************************
 //****global variables**************
 //**********************************
@@ -76,7 +68,7 @@ byte deviceCount = 0;
 
 bool lcdDefautl = false;
 bool rtcDefault = false;
-bool memDefault = false;
+bool mem0Default = false;
 
 //*********************************
 //**************const**************
@@ -95,7 +87,7 @@ const char *tabletypes[] = {
     "DISP-SSD1306",
     "A2D-AD1115",
 };
-
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 //********************************
 //*****Objet Declarations*******
@@ -103,9 +95,7 @@ const char *tabletypes[] = {
 
 // Display i2c Instance
 LiquidCrystal_I2C lcd(0x3f, 16, 2);
-
-
-
+RTC_DS1307 rtc;
 
 // put function declarations here:
 
@@ -114,16 +104,16 @@ void configRecovery();
 void storeI2cconfig();
 void autoConfig();
 
-
-void setup() {
+void setup()
+{
   // put your setup code here, to run once:
 
-if (!SPIFFS.begin(true))
+  if (!SPIFFS.begin(true))
   {
     Serial.println("Error al montar el sistema de archivos SPIFFS.");
     return;
   }
- // scanneri2c();
+  // scanneri2c();
   Serial.begin(115200);
   Serial.println("Serial port open 115200");
   Serial.println("i2c Iniciated");
@@ -135,6 +125,7 @@ if (!SPIFFS.begin(true))
   autoConfig();
   storeI2cconfig();
   configRecovery();
+
   if (lcdDefautl)
   {
     lcd.init();
@@ -145,15 +136,60 @@ if (!SPIFFS.begin(true))
     delay(1000);
     lcd.setCursor(0, 1);
   }
- 
+
+  if (!rtc.begin())
+  {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    while (1)
+      delay(10);
+  }
+
+  if (!rtc.isrunning())
+  {
+    Serial.println("RTC is NOT running, let's set the time!");
+    // When time needs to be set on a new device, or after a power loss, the
+    // following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  }
+
+  // When time needs to be re-set on a previously configured device, the
+  // following line sets the RTC to the date & time this sketch was compiled
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  // This line sets the RTC with an explicit date & time, for example to set
+  // January 21, 2014 at 3am you would call:
+  // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  lcd.print("RTC OK");
+  delay(1000);
 }
 
-void loop() {
+void loop()
+{
+
+  DateTime now = rtc.now();
+  lcd.setCursor(0, 0);
+  lcd.print(now.year());
+  lcd.print("/");
+  lcd.print(now.month());
+  lcd.print("/");
+  lcd.print(now.day());
+  lcd.setCursor(0, 1);
+  lcd.print(now.hour());
+  lcd.print(":");
+  lcd.print(now.minute());
+  lcd.print(":");
+  lcd.print(now.second());
+ 
+  
+  delay(500);
+
   // put your main code here, to run repeatedly:
 }
 
 // put function definitions here:
-
 
 //*************************Setup system functions//**********************************************
 //**********************************************************************************
@@ -275,7 +311,7 @@ void autoConfig()
     {
       deviceInfo[i].type = 2;
       deviceInfo[i].order = 1;
-      memDefault = true;
+      mem0Default = true;
     }
   }
 }
