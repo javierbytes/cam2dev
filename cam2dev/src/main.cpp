@@ -21,8 +21,14 @@
 #include <SPIFFS.h>
 #include <Preferences.h>
 
+
+#include <page1.h>
+#include <page2.h>
+#include <page3.h>
+#include <style.h>
+
 // access point dredentials
-const char *ssid = "SYC";
+const char *ssid = "SECUREPASS";
 const char *password = "57832023";
 
 //********************************
@@ -87,6 +93,7 @@ const char *tabletypes[] = {
     "DISP-SSD1306",
     "A2D-AD1115",
 };
+
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 //********************************
@@ -96,6 +103,7 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 // Display i2c Instance
 LiquidCrystal_I2C lcd(0x3f, 16, 2);
 RTC_DS1307 rtc;
+WIEGAND wg;
 
 // put function declarations here:
 
@@ -163,7 +171,35 @@ void setup()
   // January 21, 2014 at 3am you would call:
   // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
   lcd.print("RTC OK");
-  delay(1000);
+
+  // inputs optputs and signaling configuration
+  pinMode(LED_BH, OUTPUT);
+  pinMode(BUZZ, OUTPUT);
+  pinMode(REL, OUTPUT);
+  pinMode(LED_WIFI, OUTPUT);
+  pinMode(LED_BLE, OUTPUT);
+  pinMode(LED_S1, INPUT);
+  pinMode(LED_S2, INPUT);
+  // testing of outputs
+  digitalWrite(LED_BH, HIGH);
+  digitalWrite(BUZZ, HIGH);
+  digitalWrite(REL, HIGH);
+  digitalWrite(LED_WIFI, HIGH);
+  digitalWrite(LED_BLE, HIGH);
+  // waiting (block task)
+  delay(500);
+  // end test
+  digitalWrite(BUZZ, LOW);
+  digitalWrite(REL, LOW);
+  digitalWrite(LED_WIFI, LOW);
+  digitalWrite(LED_BLE, LOW);
+
+  // reader one init
+  wg.begin_R1();
+  // reader 2 init
+  wg.begin_R2();
+  
+
 }
 
 void loop()
